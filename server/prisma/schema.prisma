@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String        @id @default(uuid())
+  email         String        @unique
+  passwordHash  String
+  fullName      String?
+  profileJson   Json?         // Stores career profile (archetypes, narrative, etc.)
+  cvMarkdown    String?       // Stores the base CV in markdown
+  applications  Application[]
+  jobs          JobQueue[]
+  storyBank     StoryBank[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model StoryBank {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  content   String
+  tags      String?  // Comma separated tags
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Application {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  companyName  String
+  jobTitle     String
+  jdUrl        String
+  status       String    @default("PENDING") // PENDING, APPLIED, INTERVIEWING, REJECTED, OFFER
+  score        Float?
+  archetype    String?
+  report       Report?
+  pdfPath      String?   // S3 or local path to generated CV
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Report {
+  id            String      @id @default(uuid())
+  applicationId String      @unique
+  application   Application @relation(fields: [applicationId], references: [id])
+  summary       String?
+  cvMatch       String?
+  levelStrategy String?
+  compResearch  String?
+  interviewPrep String?     // STAR stories
+  rawMarkdown   String?     // Full report in markdown
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model JobQueue {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  type        String    // AUTO_PIPELINE, SCANNER, PDF_GEN
+  status      String    @default("QUEUED") // QUEUED, PROCESSING, COMPLETED, FAILED
+  resultUrl   String?
+  errorLog    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
